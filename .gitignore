@@ -1,50 +1,43 @@
 # Python
 __pycache__/
-*.py[cod]
-*.egg-info/
-dist/
-build/
-*.egg
+*.pyc
+
+# macOS
+.DS_Store
 
 # Virtual environments
 .venv/
 venv/
 env/
 
-# ML artifacts
-outputs/*
-data/*
-checkpoints/*
-results/*
-logs/
-*.pt
+# Datasets
+/data/raw/
+/data/processed/
+/reproductions/3DETR/rawData/
+/reproductions/3DETR/processedData/
+
+# Model weights
+/models/
 *.pth
-*.onnx
-wandb/
+*.pt
+*.ckpt
 
-# Keep READMEs in otherwise-ignored dirs
-!data/README.md
-!checkpoints/README.md
-!results/README.md
+# Generated results
+/outputs/
+*.log
 
-# IDE
+# VS Code
 .vscode/
-.idea/
-*.swp
-*.swo
 
-# AI coding tools
-.claude/
-.cursor/
-.copilot/
-.aider*
-.continue/
-
-# OS
-.DS_Store
-Thumbs.db
-
-# Tooling
-.ruff_cache/
-.pytest_cache/
+# Jupyter
 .ipynb_checkpoints/
+
+# Environment variables
+.env
+
+# Unity generated files
+Library/
+Temp/
+Obj/
+Build/
+Logs/
