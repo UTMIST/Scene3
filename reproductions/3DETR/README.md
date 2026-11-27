@@ -1,173 +1,122 @@
-# 3DETR - Unity Scene Reconstruction
+# 3DETR Reproduction
 
-This project aims to reconstruct indoor scenes from RGB-D data using modern 3D deep learning methods (PointNet++, VoteNet, 3DETR), with the eventual goal of generating Unity-compatible scene representations.
+This directory contains our reproduction and experimentation work for **3DETR (3D Detection Transformer)**, a transformer-based model for 3D object detection from point clouds.
 
----
+## Directory Structure
 
-# Repository Structure
-
-```
-3DETR/
-│
-├── rawdata/           # Raw datasets (ignored by git)
-│
-├── src/               # Source code
-│
-├── notebooks/         # Jupyter notebooks
-│
-├── requirements.txt
-│
-├── .gitignore
-│
+```text
+reproductions/3DETR/
+├── src/
+│   └── dataset/
+│       ├── loader.py       # Load RGB, depth, and camera parameters
+│       ├── preprocess.py   # Construct and visualize point clouds
+│       ├── writer.py       # Save processed data
+│       └── visualize.py    # Point cloud visualization
+├── notebooks/              # Exploratory notebooks
+├── requirements.txt        # Python dependencies
 └── README.md
 ```
 
----
+The raw datasets are stored separately in the Scene³ repository to avoid duplication:
 
-# Getting Started
-
-## 1. Clone the repository
-
-```bash
-git clone https://github.com/<your_username>/3DETR.git
-
-cd 3DETR
+```text
+Scene3/
+└── data/
+    ├── raw/
+    │   └── SUNRGBD/
+    └── processed/
 ```
 
----
+## Getting Started
 
-## 2. Create a Python virtual environment
+### 1. Navigate to the Reproduction Directory
 
-### macOS / Linux
+From the Scene³ repository root:
+
+```bash
+cd reproductions/3DETR
+```
+
+### 2. Create and Activate a Virtual Environment
+
+**macOS / Linux:**
 
 ```bash
 python3 -m venv .venv
-```
-
-Activate it
-
-```bash
 source .venv/bin/activate
 ```
 
----
-
-### Windows (PowerShell)
+**Windows (PowerShell):**
 
 ```powershell
 python -m venv .venv
-```
-
-Activate it
-
-```powershell
 .\.venv\Scripts\Activate.ps1
 ```
 
----
-
-## 3. Install project dependencies
-
-Upgrade pip
+### 3. Install Dependencies
 
 ```bash
 python -m pip install --upgrade pip
+python -m pip install -r requirements.txt
 ```
 
-Install all required packages
+### 4. Prepare the Dataset
+
+Download and extract the SUN RGB-D dataset into the shared data directory:
+
+```text
+Scene3/data/raw/SUNRGBD/
+```
+
+The expected structure includes:
+
+```text
+SUNRGBD/
+├── kv1/
+│   ├── b3dodata/
+│   └── NYUdata/
+├── kv2/
+├── realsense/
+└── xtion/
+```
+
+The preprocessing script expects the dataset at this location relative to the repository root.
+
+## Running the Demo
+
+The current demo loads RGB images, depth maps, camera intrinsics, and extrinsics from SUN RGB-D, constructs colored 3D point clouds, and displays them using Open3D.
+
+From `reproductions/3DETR/`, with the virtual environment activated:
 
 ```bash
-pip install -r requirements.txt
+python -m src.dataset.preprocess
 ```
 
----
-
-## 4. Register the Jupyter kernel
-
-```bash
-python -m ipykernel install --user --name=3detr --display-name="Python (3DETR)"
-```
-
----
-
-## 5. Launch Jupyter Notebook
-
-```bash
-jupyter notebook
-```
-
-Select the kernel
-
-```
-Python (3DETR)
-```
-
----
-
-## 6. Download the dataset
-
-Download the SUN RGB-D dataset.
-
-Place it inside
-
-```
-rawdata/
-
-└── SUNRGBD/
-```
-
-Since `rawdata/` is ignored by git, the dataset will not be committed.
-
----
-
-## 7. Verify the installation
-
-Run
+To adjust the number of scenes processed, modify these parameters inside `src/dataset/preprocess.py`:
 
 ```python
-import numpy
-import scipy
-import cv2
-import matplotlib
-import open3d
+START_SCENE = 0
+NUM_SCENES = 2
 ```
 
-If no errors occur, the environment is ready.
+The script processes the selected number of scenes from each available sensor directory.
 
----
+**Note:** Run the script using `python -m`, not `python src/dataset/preprocess.py`, because the package uses relative imports.
 
-# Git Workflow
+## Running the Tests
 
-The project follows a feature-branch workflow.
+The tests verify that the SUN RGB-D loader reads RGB, depth, intrinsics, and `Rtilt` correctly. They also check that point-cloud geometry follows the MATLAB toolbox’s one-based pixel indexing, `(X, Z, -Y)` axis order, and gravity alignment.
 
-```
-main
-│
-├── alex
-└── partner
-```
-
-Never commit directly to `main`.
-
-Create a feature branch
+From `reproductions/3DETR/`, activate the virtual environment and install the dependencies with `python -m pip install -r requirements.txt`. Then run the point-cloud tests.
 
 ```bash
-git checkout -b feature-name
+python -m pytest -v -s tests
 ```
 
-Push the branch
+`-v` lists each test and its result. `-s` shows the verification logs.
+
+The tests use the local SUN RGB-D scene `kv1/b3dodata/img_0063` by default. To check another scene, pass the path to its folder.
 
 ```bash
-git push -u origin feature-name
+python -m pytest -v -s tests --scene-dir /path/to/scene
 ```
-
-Open a Pull Request on GitHub once the feature is complete.
-
----
-
-# Notes
-
-- Raw datasets are **not** tracked by git.
-- Large generated files (processed datasets, checkpoints, etc.) should also remain outside version control.
-- Reusable code should live in `src/`.
-- Exploratory work should be done in `notebooks/`.

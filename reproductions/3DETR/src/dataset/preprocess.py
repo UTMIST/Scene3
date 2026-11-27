@@ -5,6 +5,7 @@ Functions for preprocessing a single raw SUN RGB-D scene into
 a standardized representation suitable for model training.
 """
 
+from argparse import ArgumentParser
 from pathlib import Path
 import numpy as np
 from itertools import islice
@@ -44,7 +45,8 @@ def construct_point_cloud(depth, rgb, intrinsics, Rtilt):
     cy = intrinsics[1, 2]
 
     H, W = depth.shape
-    u, v = np.meshgrid(np.arange(W), np.arange(H))
+    # SUN RGB-D's MATLAB toolbox uses one-based pixel coordinates with K.
+    u, v = np.meshgrid(np.arange(1, W + 1), np.arange(1, H + 1))
 
     # element-wise arithmetics to compute 3D coordinates
     Z = depth
@@ -52,7 +54,7 @@ def construct_point_cloud(depth, rgb, intrinsics, Rtilt):
     Y = (v - cy) * Z / fy
 
     # Construct point cloud in camera coordinates
-    points = np.stack((X, Y, Z), axis=-1)
+    points = np.stack((X, Z, -Y), axis=-1)
 
     # Keep only pixels with valid depth
     valid = Z > 0
@@ -75,34 +77,30 @@ def construct_point_cloud(depth, rgb, intrinsics, Rtilt):
 # ---------------------------------------------------------------------
 def main():
 
-    # construct path to raw data root dir
-    dataset_root = (
-        Path(__file__).resolve().parents[2]
-        / "rawData"
-        / "SUNRGBD"
-    )
+    # Construct path to Scene3 repository root
+    project_root = Path(__file__).resolve().parents[4]
 
-    # paths to sensor folders to process
+    # Construct path to raw SUN RGB-D dataset
+    dataset_root = project_root / "data" / "raw" / "SUNRGBD"
+
+    # Paths to sensor folders to process
     sensor_roots = [
         dataset_root / "kv1" / "b3dodata",
         dataset_root / "kv1" / "NYUdata",
         dataset_root / "kv2" / "align_kv2",
         dataset_root / "kv2" / "kinect2data",
-        dataset_root / "realsense" / "lg", 
+        dataset_root / "realsense" / "lg",
         dataset_root / "realsense" / "sa",
         dataset_root / "realsense" / "sh",
         dataset_root / "realsense" / "shr",
-        # dataset_root / "xtion" / "sun3ddata", # TODO: different path gen needed for sun3ddata
+        # dataset_root / "xtion" / "sun3ddata",  # TODO: different path gen logic needed for sun3ddata
         dataset_root / "xtion" / "xtion_align_data",
     ]
 
-    # Only process the first 5 scenes from each folder
     START_SCENE = 0
     NUM_SCENES = 2
-    
-    for sensor_root in sensor_roots:
 
-        # print(f"\n=== {sensor_root.name} ===")
+    for sensor_root in sensor_roots:
 
         if not sensor_root.exists():
             print(f"Missing: {sensor_root}")
@@ -124,10 +122,6 @@ def main():
 
             paths = get_scene_paths(scene_dir)
 
-            # print("-" * 60)
-            # for key, value in paths.items():
-            #     print(f"{key:<12}: {value}")
-
             rgb = load_rgb(paths["rgb"])
             depth = load_depth(paths["depth"])
             intrinsics = load_intrinsics(paths["intrinsics"])
@@ -146,5 +140,15 @@ def main():
                 window_name=paths["scene"],
             )
 
+
 if __name__ == "__main__":
-    main()
+    parser = ArgumentParser(description="Preprocess SUN RGB-D point clouds.")
+    parser.add_argument("--verify", type=Path, metavar="SCENE_DIR",
+                        help="Check one scene's geometry without opening a viewer.")
+    args = parser.parse_args()
+    if args.verify is None:
+        main()
+    else:
+        from tests import run_point_cloud_tests
+
+        raise SystemExit(run_point_cloud_tests(args.verify))
