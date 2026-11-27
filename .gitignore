@@ -16,11 +16,17 @@ env/
 /reproductions/3DETR/rawData/
 /reproductions/3DETR/processedData/
 
+# speed3r
+/reproductions/speed3r/checkpoints/
+/reproductions/speed3r/data/
+/reproductions/speed3r/outputs/
+
 # Model weights
 /models/
 *.pth
 *.pt
 *.ckpt
+*.safetensors
 
 # Generated results
 /outputs/

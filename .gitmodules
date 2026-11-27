@@ -1,0 +1,4 @@
+[submodule "reproductions/speed3r/original"]
+	path = reproductions/speed3r/original
+	url = https://github.com/Visual-AI/speed3r
+	shallow = true
