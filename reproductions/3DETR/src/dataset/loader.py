@@ -22,7 +22,8 @@ def get_scene_paths(scene_dir: Path) -> dict[str, Path]:
 
     Returns:
         dict
-            Dictionary containing all required file paths.
+            Dictionary containing all required file p
+            aths.
     """
 
     scene_name = scene_dir.name

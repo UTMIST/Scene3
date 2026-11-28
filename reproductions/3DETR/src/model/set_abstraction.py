@@ -16,6 +16,7 @@ class BatchNormDim1Swap(nn.BatchNorm1d):
         x = x.permute(1,2,0)
 
 
+
         # model.forward(input_data) = model(input_data)
         # BatchNorm requires that the input is (N X C X L), which is why we need to permute it 
         x = super(BatchNormDim1Swap, self).forward(x) 
