@@ -1,39 +1,70 @@
-# Scene3 — Stage 3: Unity Runtime Scene Reconstruction (`App/Unity`)
+# Scene3 — Unity Scene Builder (`App/Unity`)
 
-**Last Updated:** November 24, 2026  
-**Scope:** Stage 3 Deliverable — Converting Stage 2 (`3DETR`) 3D object detections into live, interactive Unity scenes at **game time (runtime)**.
+**Last Updated:** November 28, 2026
 
-## 1. Overview & Goal
-Stage 3 takes a 2D indoor image, passes it through our Python ML backend (Stage 1 Depth Estimation + Stage 2 `3DETR` Object Detection), and dynamically reconstructs the 3D environment inside Unity **while the game is running (Play Mode / Compiled Build)** so users can watch the scene assemble in real time.
+## 1. How It Works (Architecture)
 
-Both upload workflows feed into the **exact same core C# reconstruction pipeline** 
-Ex: (`RuntimeSceneReconstructor`).
+Everything happens **in game time (Play Mode)** so you can see the room get built live in front of you. There are two ways to upload an image, and both use the exact same C# builder script:
 
-## 2. Two Image Upload Workflows (Both Execute in Game Time)
+```text
+[2D Image (.jpg / .png)]
+   ├── Way 1 (For Devs): Unity Editor DropBox Window
+   └── Way 2 (For Players): In-Game "Upload Image" Button (Coming Soon)
+          │
+          ▼
+[Stage 2 Backend] -> Finds objects in the image & sends back a JSON list
+          │
+          ▼
+[SandboxSceneManager.cs] -> Reads the JSON & spawns matching 3D prefabs in-game
+```
 
-The Unity app provides two entry points that trigger reconstruction during runtime:
-
-### Workflow A: Developer Tool / Custom Editor Window (Play Mode)
-* **How it works:** A custom Unity `EditorWindow` (`Scene3DevWindow`) docked in the Unity Editor provides a **drag-and-drop image box** (`EditorGUILayout.ObjectField` / `DragAndDrop` zone).
-* **Game-Time Execution:** When a developer drops an image (or test JSON) into the tool and clicks **Reconstruct**, the script automatically enters/uses **Play Mode** (`EditorApplication.isPlaying = true`), sends the image to the backend, and runs the runtime C# builder so you watch the 3D scene generate live in the Game view.
-* **Offline JSON Override:** Developers can also drop a mock `.json` file directly into this window to test scene reconstruction without running the Python GPU server.
-
-### Workflow B: In-Game Player UI (Runtime Gameplay)
-* Unity does **not** natively support dragging files from your desktop directly onto a game window.
-* **Recommended Approach:** Provide a clean in-game **Upload Image** button (Canvas UI) that opens a **native OS file picker dialog** (via a lightweight cross-platform wrapper such as `UnityStandaloneFileBrowser` or a custom in-game folder browser).
-* **Game-Time Execution:** Once the player selects an image file (`.jpg` / `.png`), Unity loads it into a `Texture2D`, sends it to the Python backend, receives the JSON detections, and invokes the exact same `RuntimeSceneReconstructor` script to spawn the room live in front of the player.
+### How the Editor Tool Talks to the Game
+* **`Scene3DropBoxWindow.cs`** (inside `Assets/Editor/`): This is a custom window inside the Unity Editor. When you drop an image into it and click **Reconstruct in Game Time**, it saves the image's file path and automatically hits **Play** in Unity.
+* **`SandboxSceneManager.cs`** (attached to the `SceneManager` object in the scene): As soon as the game starts, this script grabs that saved image path, loads the image, and runs the scene-building logic.
 
 ---
 
-## 3. End-to-End Architecture & Tech Stack
+## 2. How to Use the Editor DropBox Tool
 
-```text
-[User Image (.jpg/.png)]
-   ├── Workflow A: Custom Editor Drag-and-Drop Window (enters Play Mode)
-   └── Workflow B: In-Game UI Button -> Native File Dialog
-          │
-          ▼  (HTTP POST via UnityWebRequest)
-[Python Backend: Stage 1 (Depth Anything) -> Stage 2 (3DETR)]
-          │
-          ▼  (Returns JSON Detection List)
-[Core C# Runtime Pipeline: RuntimeSceneReconstructor.
+Follow these steps to test uploading an image in the Unity Editor:
+
+1. **Open the DropBox Window:**
+   * Look at the very top menu bar in Unity (next to *File*, *Edit*, *Assets*).
+   * Click **`Scene3`** -> **`DropBox Window`**.
+   * *(Tip: Drag the **Scene3 DropBox** tab next to your **Inspector** tab on the right so it stays docked and easy to reach).*
+2. **Add an Image:**
+   * Drag any `.png` or `.jpg` image from your computer's folder directly into the **`Drag & Drop Image Here`** box, **or**
+   * Click the small circle icon next to **`Project Image`** to pick an image already inside your Unity `Assets` folder.
+   * You will see a small preview of your image appear below the box.
+3. **Build in Game Time:**
+   * Click the **`Reconstruct in Game Time`** button.
+   * Unity will automatically enter **Play Mode** and spawn the reconstructed objects on the floor in front of your player. *(Currently spawns a test cube until we hook up the real Stage 2 JSON list).*
+
+---
+
+## 3. How to Play the Sandbox (Controls)
+
+Once you are in Play Mode, you can walk around the flat floor to look at the spawned objects from different angles:
+
+| Key | What It Does |
+| :--- | :--- |
+| **`W` or `Up Arrow`** | Walk forward (in the direction your character is facing) |
+| **`S` or `Down Arrow`** | Walk backward |
+| **`A` or `Left Arrow`** | Turn left |
+| **`D` or `Right Arrow`** | Turn right |
+
+---
+
+## 4. Project Files & Where Things Are
+
+* **`Assets/Editor/Scene3DropBoxWindow.cs`**: Creates the `Scene3 -> DropBox Window` menu tool. *(Note: Do not attach this to any object in the scene—Unity loads it automatically).*
+* **`Assets/Scripts/SandboxSceneManager.cs`**: Attached to the **`SceneManager`** object in the Hierarchy. Handles receiving the image and spawning 3D objects during Play Mode.
+* **`Assets/Scripts/PlayerController.cs`**: Attached to the parent **`Player`** object (which holds both the character model and the camera). Controls walking and turning.
+
+---
+
+## 5. What We Are Building Next
+
+1. **Real Prefab Spawning:** Replace the placeholder cube in `SandboxSceneManager.cs` with code that reads Stage 2's JSON list and spawns real 3D furniture prefabs at the right positions, rotations, and sizes (`1 Unity unit = 1 meter`).
+2. **Fallback Box:** If Stage 2 detects an object it doesn't recognize, spawn a basic box matching that object's size so nothing is missing.
+3. **In-Game Upload Button:** Connect the **`Upload Image`** button on the game screen (HUD) so players can pick an image during gameplay without needing the Unity Editor.
